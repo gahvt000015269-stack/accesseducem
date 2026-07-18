@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenPass V5 - Solución de Escaneo Cruzado</title>
+    <!-- Librería para generar códigos QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --azul-principal: #0f2c59;
+            --marron-acento: #8B5A2B;
+            --gris-fondo: #f8fafc;
+            --gris-oscuro: #334155;
+            --blanco: #ffffff;
+            --semaforo-verde: #10b981;
+            --semaforo-amarillo: #f59e0b;
+            --semaforo-rojo: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--gris-fondo); color: #1e293b; padding: 20px 10px; }
+        .container { max-width: 680px; margin: 0 auto; }
+
+        .header-app {
+            background-color: var(--azul-principal);
+            color: var(--blanco);
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            border-bottom: 5px solid var(--marron-acento);
+            margin-bottom: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+        }
+        .header-app h1 { font-size: 24px; font-weight: 700; }
+        .header-app p { font-size: 13px; color: #cbd5e1; margin-top: 4px; }
+
+        .card {
+            background: var(--blanco);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            color: var(--azul-principal);
+            margin-bottom: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-left: 4px solid var(--marron-acento);
+            padding-left: 8px;
+        }
+
+        /* Selector de Modo de Simulación */
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f1f5f9;
+            padding: 6px;
+            border-radius: 8px;
+        }
+        .mode-option {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--gris-oscuro);
+            transition: all 0.2s;
+        }
+        .mode-option.active {
+            background: var(--azul-principal);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        /* Tablas */
+        .db-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }
+        .db-table th, .db-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .db-table th { background: #f8fafc; color: #64748b; }
+        .db-table tr { cursor: pointer; }
+        .db-table tr:hover { background: #f1f5f9; }
+
+        .status-pill {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .btn {
+            background: var(--azul-principal);
+            color: white;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn:hover { background: #1e3a65; }
+
+        /* Contenedor del QR */
+        .qr-display-zone {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+        }
+        #qrcode { display: inline-block; margin: 15px 0; padding: 10px; background: white; border-radius: 8px; }
+
+        /* Alerta Técnica Explicativa */
+        .alert-box {
+            background-color: #fef2f2;
+            border-left: 4px solid var(--semaforo-rojo);
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #991b1b;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        /* Teléfono Simulado en la misma pantalla */
+        .mock-phone {
+            background: #fff;
+            border-radius: 24px;
+            border: 8px solid #0f172a;
+            padding: 15px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .acuse-box {
+            border: 2px solid var(--azul-principal);
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        .acuse-header { text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 12px; }
+        .acuse-header h4 { font-size: 14px; color: var(--azul-principal); }
+        .acuse-header span { font-size: 10px; color: #64748b; }
+        .acuse-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
+        .acuse-label { font-weight: 600; color: #475569; }
+        .acuse-value { color: #0f172a; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header-app">
+        <h1>GreenPass Prototipo V5 🖥️📱</h1>
+        <p>Solución Técnica Definitiva para Escaneo en Teléfonos Celulares</p>
+    </div>
+
+    <!-- EXPLICACIÓN TÉCNICA DEL PROTOCOLO -->
+    <div class="alert-box" id="protocolAlert">
+        <strong>⚠️ NOTA DE ENTORNO LOCAL DETECTADO:</strong> Las cámaras de celular no abren enlaces que inicien con <code>file:///</code> de forma remota por seguridad. Selecciona el <strong>Modo Exposición</strong> abajo para solucionar este problema sin requerir internet.
+    </div>
+
+    <div class="card">
+        <div class="section-title">1. Configura el comportamiento del QR para tu Celular</div>
+        <div class="mode-selector">
+            <button class="mode-option active" id="btnModoTexto" onclick="cambiarModo('texto')">
+                📝 MODO EXPOSICIÓN (Muestra el acuse en la cámara del celular al instante - ¡Sin Internet!)
+            </button>
+            <button class="mode-option" id="btnModoWeb" onclick="cambiarModo('web')">
+                🔗 MODO ENLACE WEB (Requiere subirlo a GitHub Pages)
+            </button>
+        </div>
+
+        <div class="section-title">2. Selecciona un alumno en el Kiosko</div>
+        <table class="db-table">
+            <thead>
+                <tr><th>Matrícula</th><th>Nombre del Alumno</th><th>Estatus Financiero</th></tr>
+            </thead>
+            <tbody>
+                <tr onclick="seleccionarAlumno('T000015269')">
+                    <td><strong>T000015269</strong></td><td>Victor Eduardo Gallegos H.</td>
+                    <td><span class="status-pill" style="background-color:var(--semaforo-verde)">Al corriente</span></td>
+                </tr>
+                <tr onclick="seleccionarAlumno('T000014850')">
+                    <td><strong>T000014850</strong></td><td>Carlos Javier Mendoza T.</td>
+                    <td><span class="status-pill" style="background-color:var(--semaforo-amarillo)">Convenio</span></td>
+                </tr>
+                <tr onclick="seleccionarAlumno('T000015999')">
+                    <td><strong>T000015999</strong></td><td>Sofía Regina Castro Ruíz</td>
+                    <td><span class="status-pill" style="background-color:var(--semaforo-rojo)">Adeudo Pendiente</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="margin-bottom: 15px;">
+            <label style="font-weight:600; font-size:13px; display:block; margin-bottom:4px;">Matrícula Activa en Kiosko:</label>
+            <input type="text" id="matriculaDisplay" value="T000015269" readonly style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-weight:bold;">
+        </div>
+
+        <button class="btn" onclick="procesarYGenerarQR()">Generar Código QR Adaptado</button>
+
+        <!-- Zona de despliegue del QR -->
+        <div id="qrZone" class="qr-display-zone" style="display:none;">
+            <h4 style="color:var(--azul-principal); font-size:14px; font-weight:700;">¡QR Optimizado Generado!</h4>
+            <div id="qrcode"></div>
+            <p id="instructionsText" style="font-size:11px; color:#475569; max-width:480px; margin:0 auto; line-height:1.4; font-weight:500;"></p>
+        </div>
+    </div>
+
+    <!-- SIMULADOR DE TELÉFONO INTEGRADO EN ESCRITORIO -->
+    <div class="mock-phone" id="phonePreview">
+        <div style="text-align:center; margin-bottom:8px;">
+            <span style="background:#f1f5f9; padding:3px 10px; border-radius:12px; font-size:10px; font-weight:700; color:#64748b;">📱 VISTA EN PANTALLA MÓVIL AUTOMÁTICA</span>
+        </div>
+        <div class="acuse-box" id="acuseMobileBox">
+            <div class="acuse-header">
+                <h4>ACUSE DIGITAL DE EVALUACIÓN</h4>
+                <span id="mFolio">FOLIO: GP-2026-PENDIENTE</span><br>
+                <span id="mFecha">Fecha: --/--/----</span>
+            </div>
+            <div class="acuse-row"><span class="acuse-label">Institución:</span><span class="acuse-value">EDUCEM - Saltillo 2</span></div>
+            <div class="acuse-row"><span class="acuse-label">Alumno:</span><span class="acuse-value" id="mNombre">--</span></div>
+            <div class="acuse-row"><span class="acuse-label">Matrícula:</span><span class="acuse-value" id="mMatricula">--</span></div>
+            <div class="acuse-row"><span class="acuse-label">Dictamen Financiero:</span><span class="acuse-value" id="mDictamen" style="font-weight:bold;">--</span></div>
+            <div class="acuse-row"><span class="acuse-label">Indicación en Aula:</span><span class="acuse-value" id="mInstruccion" style="font-style:italic; font-size:11px;">--</span></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const baseDatosAlumnos = {
+        "T000015269": { nombre: "Victor Eduardo Gallegos Hernandez", grado: "Lic. Cuatrimestral Mix", estatus: "verde", msg: "🟢 ACCESO AUTORIZADO. Pase directo al aula.", inst: "Estatus al corriente. Éxito en su evaluación." },
+        "T000014850": { nombre: "Carlos Javier Mendoza Torres", grado: "Lic. Cuatrimestral Mix", estatus: "amarillo", msg: "🟡 ACCESO BAJO CONVENIO. Registro condicionado.", inst: "Prórroga aprobada en sistema. Puede ingresar." },
+        "T000015999": { nombre: "Sofía Regina Castro Ruíz", grado: "Lic. Cuatrimestral Mix", estatus: "rojo", msg: "🔴 ACCESO RESTRINGIDO. Bloqueo Financiero.", inst: "Evite filas. Reportarse de inmediato en Ventanilla." }
+    };
+
+    let modoActual = 'texto';
+
+    window.addEventListener('DOMContentLoaded', () => {
+        if (window.location.protocol !== 'file:') {
+            document.getElementById('protocolAlert').style.display = 'none';
+        }
+        
+        const params = new URLSearchParams(window.location.search);
+        const matParam = params.get('matricula');
+        if (matParam && baseDatosAlumnos[matParam]) {
+            // Si el celular accedió mediante una URL web real válida
+            document.querySelector('.card').style.display = 'none';
+            document.querySelector('.header-app').style.display = 'none';
+            renderizarAcuseUI(matParam);
+        }
+    });
+
+    function cambiarModo(modo) {
+        modoActual = modo;
+        document.getElementById('btnModoTexto').classList.remove('active');
+        document.getElementById('btnModoWeb').classList.remove('active');
+        
+        if (modo === 'texto') {
+            document.getElementById('btnModoTexto').classList.add('active');
+        } else {
+            document.getElementById('btnModoWeb').classList.add('active');
+        }
+        document.getElementById('qrZone').style.display = 'none';
+    }
+
+    function seleccionarAlumno(mat) {
+        document.getElementById('matriculaDisplay').value = mat;
+        document.getElementById('qrZone').style.display = 'none';
+    }
+
+    function procesarYGenerarQR() {
+        const mat = document.getElementById('matriculaDisplay').value;
+        const alumno = baseDatosAlumnos[mat];
+        const qrDiv = document.getElementById('qrcode');
+        qrDiv.innerHTML = "";
+        
+        document.getElementById('qrZone').style.display = 'block';
+        let textoCodificar = "";
+
+        if (modoActual === 'texto') {
+            // --- MODO TEXTO (LA SOLUCIÓN LOCAL) ---
+            // Codifica un bloque estructurado de texto. Cuando el smartphone lee el QR usando la cámara normal, 
+            // el sistema operativo del teléfono muestra instantáneamente la información en la pantalla como un letrero flotante.
+            textoCodificar = `📄 ACUSE DIGITAL EDUCEM\n` +
+                             `---------------------------\n` +
+                             `ALUMNO: ${alumno.nombre}\n` +
+                             `MATRÍCULA: ${mat}\n` +
+                             `CAMPUS: Saltillo 2\n` +
+                             `FOLIO: GP-2026-${Math.floor(10000 + Math.random() * 90000)}\n` +
+                             `---------------------------\n` +
+                             `DICTAMEN: ${alumno.msg}\n` +
+                             `INDICACIÓN: ${alumno.inst}`;
+
+            document.getElementById('instructionsText').innerHTML = 
+                `🔥 <strong>¡MODO EXPOSICIÓN ACTIVO!</strong> Abre la aplicación de cámara nativa en tu celular y apunta al QR. Verás cómo <strong>aparece todo el texto ordenado directamente flotando en la pantalla de tu móvil</strong>. ¡Perfecto para simularlo en clase sin internet!`;
+        } else {
+            // --- MODO WEB ENLACE ---
+            let urlBase = window.location.href.split('?')[0];
+            textoCodificar = `${urlBase}?matricula=${mat}`;
+            
+            document.getElementById('instructionsText').innerHTML = 
+                `🔗 <strong>¡MODO ENLACE WEB!</strong> Este código contiene una URL de redirección. Recuerda que para que abra en el navegador de tu celular, este archivo debe estar subido a internet (por ejemplo, usando GitHub Pages).`;
+        }
+
+        // Renderizar QR
+        new QRCode(qrDiv, {
+            text: textoCodificar,
+            width: 180,
+            height: 180,
+            colorDark : "#0f2c59",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.M
+        });
+
+        // Sincronizar el simulador móvil en la pantalla de la PC
+        renderizarAcuseUI(mat);
+    }
+
+    function renderizarAcuseUI(mat) {
+        const alumno = baseDatosAlumnos[mat];
+        document.getElementById('mFolio').innerText = `FOLIO: GP-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+        document.getElementById('mFecha').innerText = `Validado: ${new Date().toLocaleString()}`;
+        document.getElementById('mNombre').innerText = alumno.nombre;
+        document.getElementById('mMatricula').innerText = mat;
+        
+        const dictamen = document.getElementById('mDictamen');
+        dictamen.innerText = alumno.msg;
+        if(alumno.estatus === 'verde') dictamen.style.color = 'var(--semaforo-verde)';
+        if(alumno.estatus === 'amarillo') dictamen.style.color = 'var(--semaforo-amarillo)';
+        if(alumno.estatus === 'rojo') dictamen.style.color = 'var(--semaforo-rojo)';
+        
+        document.getElementById('mInstruccion').innerText = alumno.inst;
+    }
+</script>
+
+</body>
+</html>
